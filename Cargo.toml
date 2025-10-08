@@ -1,0 +1,19 @@
+[package]
+name = "picosimd"
+version = "0.9.0"
+authors = ["Jan Bujak <j@exia.io>"]
+license = "MIT/Apache-2.0"
+edition = "2024"
+rust-version = "1.86.0"
+repository = "https://github.com/koute/picosimd"
+description = "A small SIMD crate"
+
+[dependencies]
+
+[dev-dependencies]
+oorandom = "11.1.5"
+
+[features]
+default = []
+std = []
+ops = []

@@ -1,0 +1,42 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test-linux:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Rust 1.89
+      run: rustup toolchain install 1.89
+    - name: Install target: wasm32-unknown-unknown
+      run: rustup target add wasm32-unknown-unknown
+    - name: Build and test
+      run: ./ci/jobs/build-and-test.sh
+  clippy:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Rust 1.89
+      run: rustup toolchain install 1.89
+    - name: Install clippy
+      run: rustup component add clippy
+    - name: Install clippy (Rust 1.89)
+      run: rustup run 1.89 rustup component add clippy
+    - name: Run clippy
+      run: ./ci/jobs/clippy.sh
+  rustfmt:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install rustfmt
+      run: rustup component add rustfmt
+    - name: Run rustfmt
+      run: ./ci/jobs/rustfmt.sh
