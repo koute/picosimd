@@ -63,6 +63,30 @@ macro_rules! impl_bitops {
                 unsafe { self.xor(rhs) }
             }
         }
+
+        #[cfg(feature = "ops")]
+        impl core::ops::BitAndAssign for $type {
+            #[inline]
+            fn bitand_assign(&mut self, rhs: Self) {
+                *self = *self & rhs;
+            }
+        }
+
+        #[cfg(feature = "ops")]
+        impl core::ops::BitOrAssign for $type {
+            #[inline]
+            fn bitor_assign(&mut self, rhs: Self) {
+                *self = *self | rhs;
+            }
+        }
+
+        #[cfg(feature = "ops")]
+        impl core::ops::BitXorAssign for $type {
+            #[inline]
+            fn bitxor_assign(&mut self, rhs: Self) {
+                *self = *self ^ rhs;
+            }
+        }
     };
 }
 
