@@ -37,8 +37,20 @@ impl si128 {
 
     #[target_feature(enable = "sse2")]
     #[inline]
+    pub unsafe fn store_aligned(self, address: *mut u8) {
+        unsafe { _mm_store_si128(address.cast(), self.0) }
+    }
+
+    #[target_feature(enable = "sse2")]
+    #[inline]
     pub unsafe fn load_unaligned(address: *const u8) -> Self {
         unsafe { Self(_mm_loadu_si128(address.cast())) }
+    }
+
+    #[target_feature(enable = "sse2")]
+    #[inline]
+    pub unsafe fn load_aligned(address: *const u8) -> Self {
+        unsafe { Self(_mm_load_si128(address.cast())) }
     }
 
     #[target_feature(enable = "sse2")]

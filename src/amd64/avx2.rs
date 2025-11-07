@@ -37,8 +37,20 @@ impl si256 {
 
     #[target_feature(enable = "avx")]
     #[inline]
+    pub unsafe fn store_aligned(self, address: *mut u8) {
+        unsafe { _mm256_store_si256(address.cast(), self.0) }
+    }
+
+    #[target_feature(enable = "avx")]
+    #[inline]
     pub unsafe fn load_unaligned(address: *const u8) -> Self {
         unsafe { Self(_mm256_loadu_si256(address.cast())) }
+    }
+
+    #[target_feature(enable = "avx")]
+    #[inline]
+    pub unsafe fn load_aligned(address: *const u8) -> Self {
+        unsafe { Self(_mm256_load_si256(address.cast())) }
     }
 
     #[target_feature(enable = "avx")]

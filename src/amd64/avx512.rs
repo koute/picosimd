@@ -47,8 +47,20 @@ impl si512 {
 
     #[target_feature(enable = "avx512f")]
     #[inline]
+    pub unsafe fn store_aligned(self, address: *mut u8) {
+        unsafe { _mm512_store_si512(address.cast(), self.0) }
+    }
+
+    #[target_feature(enable = "avx512f")]
+    #[inline]
     pub unsafe fn load_unaligned(address: *const u8) -> Self {
         unsafe { Self(_mm512_loadu_si512(address.cast())) }
+    }
+
+    #[target_feature(enable = "avx512f")]
+    #[inline]
+    pub unsafe fn load_aligned(address: *const u8) -> Self {
+        unsafe { Self(_mm512_load_si512(address.cast())) }
     }
 
     #[target_feature(enable = "avx512f")]
