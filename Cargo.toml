@@ -1,6 +1,6 @@
 [package]
 name = "picosimd"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Jan Bujak <j@exia.io>"]
 license = "MIT/Apache-2.0"
 edition = "2024"
