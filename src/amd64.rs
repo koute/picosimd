@@ -26,6 +26,7 @@ macro_rules! impl_bitops {
     ($type:ident) => {
         #[cfg(feature = "ops")]
         impl PartialEq for $type {
+            #[inline(always)]
             fn eq(&self, rhs: &Self) -> bool {
                 unsafe { self.is_equal(*rhs) }
             }
@@ -38,7 +39,7 @@ macro_rules! impl_bitops {
         impl core::ops::BitAnd for $type {
             type Output = Self;
 
-            #[inline]
+            #[inline(always)]
             fn bitand(self, rhs: Self) -> Self {
                 unsafe { self.and(rhs) }
             }
@@ -48,7 +49,7 @@ macro_rules! impl_bitops {
         impl core::ops::BitOr for $type {
             type Output = Self;
 
-            #[inline]
+            #[inline(always)]
             fn bitor(self, rhs: Self) -> Self {
                 unsafe { self.or(rhs) }
             }
@@ -58,7 +59,7 @@ macro_rules! impl_bitops {
         impl core::ops::BitXor for $type {
             type Output = Self;
 
-            #[inline]
+            #[inline(always)]
             fn bitxor(self, rhs: Self) -> Self {
                 unsafe { self.xor(rhs) }
             }
@@ -66,7 +67,7 @@ macro_rules! impl_bitops {
 
         #[cfg(feature = "ops")]
         impl core::ops::BitAndAssign for $type {
-            #[inline]
+            #[inline(always)]
             fn bitand_assign(&mut self, rhs: Self) {
                 *self = *self & rhs;
             }
@@ -74,7 +75,7 @@ macro_rules! impl_bitops {
 
         #[cfg(feature = "ops")]
         impl core::ops::BitOrAssign for $type {
-            #[inline]
+            #[inline(always)]
             fn bitor_assign(&mut self, rhs: Self) {
                 *self = *self | rhs;
             }
@@ -82,7 +83,7 @@ macro_rules! impl_bitops {
 
         #[cfg(feature = "ops")]
         impl core::ops::BitXorAssign for $type {
-            #[inline]
+            #[inline(always)]
             fn bitxor_assign(&mut self, rhs: Self) {
                 *self = *self ^ rhs;
             }
@@ -103,7 +104,7 @@ macro_rules! impl_common_ops {
         impl core::ops::Add for $type {
             type Output = Self;
 
-            #[inline]
+            #[inline(always)]
             fn add(self, rhs: Self) -> Self {
                 unsafe { Self::add(self, rhs) }
             }
@@ -113,7 +114,7 @@ macro_rules! impl_common_ops {
         impl core::ops::Sub for $type {
             type Output = Self;
 
-            #[inline]
+            #[inline(always)]
             fn sub(self, rhs: Self) -> Self {
                 unsafe { Self::sub(self, rhs) }
             }
@@ -121,7 +122,7 @@ macro_rules! impl_common_ops {
 
         #[cfg(feature = "ops")]
         impl core::ops::AddAssign for $type {
-            #[inline]
+            #[inline(always)]
             fn add_assign(&mut self, rhs: Self) {
                 *self = *self + rhs;
             }
@@ -129,7 +130,7 @@ macro_rules! impl_common_ops {
 
         #[cfg(feature = "ops")]
         impl core::ops::SubAssign for $type {
-            #[inline]
+            #[inline(always)]
             fn sub_assign(&mut self, rhs: Self) {
                 *self = *self - rhs;
             }
