@@ -74,6 +74,11 @@ macro_rules! impl_fallback {
             }
 
             #[inline]
+            pub fn is_zero(self) -> bool {
+                self.is_equal(Self::zero())
+            }
+
+            #[inline]
             pub fn simd_eq(self, rhs: Self) -> Self {
                 Self(zip_map(self.0, rhs.0, |lhs, rhs| if lhs == rhs { -1 } else { 0 }))
             }

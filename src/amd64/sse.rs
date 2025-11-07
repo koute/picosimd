@@ -123,6 +123,12 @@ impl si128 {
         self.as_i32x4().simd_eq(rhs.as_i32x4()).as_i8x16().most_significant_bits() == -1
     }
 
+    #[target_feature(enable = "sse4.1")]
+    #[inline]
+    pub fn is_zero(self) -> bool {
+        maybe_unsafe! { _mm_testz_si128(self.0, self.0) != 0 }
+    }
+
     #[target_feature(enable = "sse2")]
     #[inline]
     pub fn and_not(self, rhs: Self) -> Self {
@@ -297,6 +303,12 @@ macro_rules! impl_m128 {
             #[inline]
             pub fn is_equal_slow(self, rhs: Self) -> bool {
                 self.as_si128().is_equal_slow(rhs.as_si128())
+            }
+
+            #[target_feature(enable = "sse4.1")]
+            #[inline]
+            pub fn is_zero(self) -> bool {
+                self.as_si128().is_zero()
             }
 
             #[target_feature(enable = "sse2")]
@@ -581,6 +593,9 @@ mod tests {
             assert!(!i32x4::splat(0x12345678).is_equal_slow(i32x4::splat(0x12345678).set::<0>(0xff)));
 
             assert!(!i8x16::zero().set::<0>(-1).is_equal(i8x16::zero()));
+
+            assert!(i8x16::zero().is_zero());
+            assert!(!i8x16::zero().set::<0>(-1).is_zero());
         }
     }
 
