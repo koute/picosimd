@@ -979,7 +979,7 @@ macro_rules! _i32x8_pick {
         let l6: i32 = $l6;
         let l7: i32 = $l7;
 
-        let input: i32x8 = $value;
+        let input: $crate::amd64::avx2::i32x8 = $value;
         let output = if l0 < 4 && l1 < 4 && l2 < 4 && l3 < 4 && l0 + 4 == l4 && l1 + 4 == l5 && l2 + 4 == l6 && l3 + 4 == l7 {
             // This is faster but it cannot work for arbitrary permutations.
             input

@@ -516,7 +516,7 @@ macro_rules! _i32x4_pick {
             assert!($l3 < 8);
         };
 
-        let input: i32x4 = $value.as_i32x4();
+        let input: $crate::amd64::sse::i32x4 = $value.as_i32x4();
         input._pick::<{ (($l0) | ($l1 << 2) | ($l2 << 4) | ($l3 << 6)) & 0xff }>()
     }};
 }
