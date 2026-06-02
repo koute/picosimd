@@ -504,6 +504,15 @@ impl i8x64 {
     pub fn saturating_sub_unsigned(self, rhs: Self) -> Self {
         Self(self.0.saturating_sub_unsigned(rhs.0), self.1.saturating_sub_unsigned(rhs.1))
     }
+
+    #[target_feature(enable = "avx2")]
+    #[inline]
+    pub fn conditional_assign(self, rhs: Self, should_pick_rhs: Self) -> Self {
+        Self(
+            self.0.conditional_assign(rhs.0, should_pick_rhs.0),
+            self.1.conditional_assign(rhs.1, should_pick_rhs.1),
+        )
+    }
 }
 
 #[cfg(all(feature = "std", test))]
@@ -826,6 +835,28 @@ mod tests {
                     "failed for input: {array:?}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn i8x64_conditional_assign() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+
+        unsafe {
+            let a = i8x64::splat(1);
+            let b = i8x64::splat(2);
+            let mut mask = [0_i8; 64];
+            for n in 0..64 {
+                if n % 2 == 0 {
+                    mask[n] = -1;
+                }
+            }
+            let mask = i8x64::from_array_ref(&mask);
+            let result = a.conditional_assign(b, mask);
+            let expected: [i8; 64] = core::array::from_fn(|n| if n % 2 == 0 { 2 } else { 1 });
+            assert_eq!(result.to_array(), expected);
         }
     }
 }

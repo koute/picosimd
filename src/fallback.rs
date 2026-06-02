@@ -328,6 +328,17 @@ impl i8x32 {
             .map(|(index, x)| x << index)
             .fold(0, |a, b| a | b)
     }
+
+    #[must_use]
+    #[inline]
+    pub fn conditional_assign(self, rhs: Self, should_pick_rhs: Self) -> Self {
+        let mut n = 0;
+        Self([(); 32].map(|_| {
+            let value = if should_pick_rhs.0[n] != 0 { rhs.0[n] } else { self.0[n] };
+            n += 1;
+            value
+        }))
+    }
 }
 
 impl i8x16 {

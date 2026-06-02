@@ -1972,4 +1972,24 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn i8x32_conditional_assign() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+
+        unsafe {
+            let a = i8x32::from_array([1; 32]);
+            let b = i8x32::from_array([2; 32]);
+            let mask = i8x32::from_array([
+                -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0,
+            ]);
+            let result = a.conditional_assign(b, mask);
+            let expected = [
+                2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1,
+            ];
+            assert_eq!(result.to_array(), expected);
+        }
+    }
 }
