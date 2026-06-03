@@ -47,6 +47,7 @@ pub mod amd64 {
 #[cfg(test)]
 mod test_utils;
 
+#[cfg(test)]
 pub(crate) fn indexes<const COUNT: usize>() -> [usize; COUNT] {
     let mut n = 0;
     [(); COUNT].map(move |_| {

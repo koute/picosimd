@@ -483,6 +483,11 @@ macro_rules! impl_i8x32_horizontal_minmax {
 }
 
 impl i8x32 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i8x32) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx")]
     #[inline]
     pub fn splat(value: i8) -> Self {
@@ -636,6 +641,11 @@ impl i8x32 {
 }
 
 impl i16x16 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i16x16) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx")]
     #[inline]
     pub fn splat(value: i16) -> Self {
@@ -762,6 +772,11 @@ impl i16x16 {
 }
 
 impl i32x8 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i32x8) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx")]
     #[inline]
     pub fn splat(value: i32) -> Self {
@@ -1019,6 +1034,11 @@ macro_rules! _i64x4_pick {
 pub use _i64x4_pick as i64x4_pick;
 
 impl i64x4 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i64x4) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx")]
     #[inline]
     pub fn splat(value: i64) -> Self {

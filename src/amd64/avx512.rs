@@ -315,6 +315,11 @@ impl_m512!(i32x16 _mm512_add_epi32 _mm512_sub_epi32 _mm512_cmpeq_epi32_mask _mm5
 impl_m512!(i64x8 _mm512_add_epi64 _mm512_sub_epi64 _mm512_cmpeq_epi64_mask _mm512_cmpgt_epi64_mask u8 i64 "avx512f" 8);
 
 impl i8x64 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i8x64) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx512f")]
     #[inline]
     pub fn splat(value: i8) -> Self {
@@ -323,6 +328,11 @@ impl i8x64 {
 }
 
 impl i16x32 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i16x32) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx512f")]
     #[inline]
     pub fn splat(value: i16) -> Self {
@@ -331,6 +341,11 @@ impl i16x32 {
 }
 
 impl i32x16 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i32x16) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx512f")]
     #[inline]
     pub fn splat(value: i32) -> Self {
@@ -339,6 +354,11 @@ impl i32x16 {
 }
 
 impl i64x8 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i64x8) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "avx512f")]
     #[inline]
     pub fn splat(value: i64) -> Self {
