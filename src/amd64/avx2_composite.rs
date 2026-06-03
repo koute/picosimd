@@ -110,6 +110,11 @@ macro_rules! impl_composite {
                 }
             }
 
+            #[inline]
+            pub const fn from_fallback(value: crate::fallback::$ty) -> Self {
+                unsafe { core::mem::transmute(value) }
+            }
+
             #[target_feature(enable = "avx")]
             #[inline]
             pub fn from_array_ref(xs: &[$lane_ty; $lane_count]) -> Self {
@@ -296,6 +301,11 @@ macro_rules! impl_composite {
                         $inner_ty(si256::load_unaligned(address.byte_add(core::mem::size_of::<si256>() * 3)).0),
                     )
                 }
+            }
+
+            #[inline]
+            pub const fn from_fallback(value: crate::fallback::$ty) -> Self {
+                unsafe { core::mem::transmute(value) }
             }
 
             #[target_feature(enable = "avx")]

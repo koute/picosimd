@@ -339,6 +339,11 @@ impl_min_max!(i16x8 _mm_min_epu16 _mm_max_epu16 _mm_min_epi16 _mm_max_epi16 "sse
 impl_min_max!(i32x4 _mm_min_epu32 _mm_max_epu32 _mm_min_epi32 _mm_max_epi32 "sse4.1", "sse4.1");
 
 impl i8x16 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i8x16) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "sse2")]
     #[inline]
     pub fn splat(value: i8) -> Self {
@@ -389,6 +394,11 @@ impl i8x16 {
 }
 
 impl i16x8 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i16x8) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "sse2")]
     #[inline]
     pub fn splat(value: i16) -> Self {
@@ -438,6 +448,11 @@ impl i16x8 {
 }
 
 impl i32x4 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i32x4) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "sse2")]
     #[inline]
     pub fn splat(value: i32) -> Self {
@@ -524,6 +539,11 @@ macro_rules! _i32x4_pick {
 pub use _i32x4_pick as i32x4_pick;
 
 impl i64x2 {
+    #[inline]
+    pub const fn from_fallback(value: crate::fallback::i64x2) -> Self {
+        unsafe { core::mem::transmute(value) }
+    }
+
     #[target_feature(enable = "sse2")]
     #[inline]
     pub fn splat(value: i64) -> Self {
