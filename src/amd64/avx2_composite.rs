@@ -869,4 +869,190 @@ mod tests {
             assert_eq!(result.to_array(), expected);
         }
     }
+
+    #[test]
+    fn i8x64_as_slice_mut() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut a = test_array_i8x64();
+            let mut b = i8x64::from_array_ref(&a);
+            a[3] = 99;
+            b.as_slice_mut()[3] = 99;
+            assert_eq!(*b.as_slice(), a);
+        }
+    }
+
+    #[test]
+    fn i16x32_as_slice_mut() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut a = test_array_i16x32();
+            let mut b = i16x32::from_array_ref(&a);
+            a[7] = 99;
+            b.as_slice_mut()[7] = 99;
+            assert_eq!(*b.as_slice(), a);
+        }
+    }
+
+    #[test]
+    fn i32x16_as_slice_mut() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut a = test_array_i32x16();
+            let mut b = i32x16::from_array_ref(&a);
+            a[5] = 99;
+            b.as_slice_mut()[5] = 99;
+            assert_eq!(*b.as_slice(), a);
+        }
+    }
+
+    #[test]
+    fn i64x8_as_slice_mut() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut a = test_array_i64x8();
+            let mut b = i64x8::from_array_ref(&a);
+            a[1] = 99;
+            b.as_slice_mut()[1] = 99;
+            assert_eq!(*b.as_slice(), a);
+        }
+    }
+
+    #[test]
+    fn i32x32_as_slice_mut() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut a = test_array_i32x32();
+            let mut b = i32x32::from_array_ref(&a);
+            a[15] = 99;
+            b.as_slice_mut()[15] = 99;
+            assert_eq!(*b.as_slice(), a);
+        }
+    }
+
+    #[test]
+    fn i8x64_simd_gt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i8x64::from_array_ref(&test_array_i8x64());
+            let b = i8x64::splat(0);
+            let gt = a.simd_gt(b);
+            let expected: [bool; 64] = test_array_i8x64().map(|x| x > 0);
+            assert_eq!(gt.to_array().map(|x| x != 0), expected);
+        }
+    }
+
+    #[test]
+    fn i16x32_simd_gt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i16x32::from_array_ref(&test_array_i16x32());
+            let b = i16x32::splat(0);
+            let gt = a.simd_gt(b);
+            let expected: [bool; 32] = test_array_i16x32().map(|x| x > 0);
+            assert_eq!(gt.to_array().map(|x| x != 0), expected);
+        }
+    }
+
+    #[test]
+    fn i32x16_simd_gt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i32x16::from_array_ref(&test_array_i32x16());
+            let b = i32x16::splat(0);
+            let gt = a.simd_gt(b);
+            let expected: [bool; 16] = test_array_i32x16().map(|x| x > 0);
+            assert_eq!(gt.to_array().map(|x| x != 0), expected);
+        }
+    }
+
+    #[test]
+    fn i64x8_simd_gt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i64x8::from_array_ref(&test_array_i64x8());
+            let b = i64x8::splat(0);
+            let gt = a.simd_gt(b);
+            let expected: [bool; 8] = test_array_i64x8().map(|x| x > 0);
+            assert_eq!(gt.to_array().map(|x| x != 0), expected);
+        }
+    }
+
+    #[test]
+    fn i32x32_simd_gt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i32x32::from_array_ref(&test_array_i32x32());
+            let b = i32x32::splat(0);
+            let gt = a.simd_gt(b);
+            let expected: [bool; 32] = test_array_i32x32().map(|x| x > 0);
+            assert_eq!(gt.to_array().map(|x| x != 0), expected);
+        }
+    }
+
+    #[test]
+    fn i32x32_bitwise_reduce() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+
+        unsafe {
+            let a = 0b10101010101010101010101010101010_u32 as i32;
+            let b = 0b01010101010101010101010101010101_u32 as i32;
+            for n in 0..32 {
+                for m in 0..32 {
+                    let mut array = [0_i32; 32];
+                    array[n] = a;
+                    array[m] = b;
+                    let value = i32x32::from_array_ref(&array);
+                    assert_eq!(
+                        std::format!("{:032b}", value.bitwise_reduce()),
+                        std::format!("{:032b}", if n == m { b } else { a | b }),
+                        "failed for n = {n}, m = {m}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn i16x32_wrapping_reduce() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+
+        let mut rng = oorandom::Rand64::new(389476348975);
+        unsafe {
+            for _ in 0..32 {
+                let mut array = [0_i16; 32];
+                for _ in 0..32 {
+                    array[rng.rand_range(0..32) as usize] = rng.rand_i64() as i16;
+                    assert_eq!(
+                        i16x32::from_array_ref(&array).wrapping_reduce(),
+                        array.iter().copied().fold(0_i16, |a, b| a.wrapping_add(b))
+                    );
+                }
+            }
+        }
+    }
 }

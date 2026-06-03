@@ -1977,15 +1977,12 @@ mod tests {
         if !std::arch::is_x86_feature_detected!("avx2") {
             return;
         }
-
         unsafe {
-            assert_eq!(
-                i8x32::from_array([
-                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
-                ])
-                .horizontal_max_signed(),
-                32
-            );
+            let arr = [
+                12_i8, -5, 33, 7, -42, 99, 1, 0, 55, -8, 22, 11, -1, 77, 3, 19, 44, -12, 6, 88, -33, 27, 14, -2, 66, 9, -19, 50, 4, 31, -7,
+                101,
+            ];
+            assert_eq!(i8x32::from_array(arr).horizontal_max_signed(), 101);
             assert_eq!(
                 i8x32::from_array(test_array_i8x32()).horizontal_max_signed(),
                 test_array_i8x32().iter().copied().max().unwrap()
@@ -2010,6 +2007,655 @@ mod tests {
                 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1,
             ];
             assert_eq!(result.to_array(), expected);
+        }
+    }
+
+    #[test]
+    fn si256_store_aligned_and_load_aligned() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            #[repr(align(32))]
+            struct Aligned32([u8; 32]);
+            let mut aligned = Aligned32([0; 32]);
+            let ptr = aligned.0.as_mut_ptr();
+            let original = si256::from_bytes([
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+            ]);
+            original.store_aligned(ptr);
+            let loaded = si256::load_aligned(ptr);
+            assert_eq!(
+                loaded.to_bytes(),
+                [
+                    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn si256_set_lo() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = si256::zero();
+            let lo = si128::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let combined = v.set_lo(lo);
+            assert_eq!(
+                combined.lo().as_i8x16().to_array(),
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+            );
+        }
+    }
+
+    #[test]
+    fn si256_set_hi() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = si256::zero();
+            let hi = si128::from_bytes([17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]);
+            let combined = v.set_hi(hi);
+            assert_eq!(
+                combined.hi().as_i8x16().to_array(),
+                [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+            );
+        }
+    }
+
+    #[test]
+    fn i128x2_zero() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let z = i128x2::zero();
+            assert!(z.as_si256().to_bytes().iter().all(|&b| b == 0));
+        }
+    }
+
+    #[test]
+    fn i128x2_is_equal() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i128x2::splat(si128::from_bytes([1; 16]));
+            let b = i128x2::splat(si128::from_bytes([1; 16]));
+            let c = i128x2::splat(si128::from_bytes([2; 16]));
+            assert!(a.is_equal(b));
+            assert!(!a.is_equal(c));
+        }
+    }
+
+    #[test]
+    fn i128x2_shuffle_i32x4() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let lo = si128::from_bytes([1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0]);
+            let hi = si128::from_bytes([101, 0, 0, 0, 102, 0, 0, 0, 103, 0, 0, 0, 104, 0, 0, 0]);
+            let v = si256::zero().set_lo(lo).set_hi(hi).as_i128x2();
+
+            let shuffled = v.shuffle_i32x4::<0b11_10_01_00>();
+            assert_eq!(
+                shuffled.as_si256().to_bytes(),
+                [
+                    1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0, 101, 0, 0, 0, 102, 0, 0, 0, 103, 0, 0, 0, 104, 0, 0, 0
+                ]
+            );
+
+            let shuffled = v.shuffle_i32x4::<0b00_01_10_11>();
+            assert_eq!(
+                shuffled.as_si256().to_bytes(),
+                [
+                    4, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 104, 0, 0, 0, 103, 0, 0, 0, 102, 0, 0, 0, 101, 0, 0, 0
+                ]
+            );
+
+            let shuffled = v.shuffle_i32x4::<0b10_10_10_10>();
+            assert_eq!(
+                shuffled.as_si256().to_bytes(),
+                [
+                    3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0, 103, 0, 0, 0, 103, 0, 0, 0, 103, 0, 0, 0, 103, 0, 0, 0
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn i8x32_horizontal_min_signed() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let arr = [
+                12_i8, -5, 33, 7, -42, 99, 1, 0, 55, -8, 22, 11, -1, 77, 3, 19, 44, -12, 6, 88, -33, 27, 14, -2, 66, 9, -19, 50, 4, 31, -7,
+                101,
+            ];
+            assert_eq!(i8x32::from_array(arr).horizontal_min_signed(), -42);
+        }
+    }
+
+    #[test]
+    fn i8x32_horizontal_max_unsigned() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let arr = [
+                12_u8 as i8,
+                5,
+                33,
+                7,
+                200_u8 as i8,
+                99,
+                1,
+                0,
+                55,
+                8,
+                22,
+                11,
+                1,
+                77,
+                3,
+                19,
+                44,
+                12,
+                6,
+                88,
+                33,
+                27,
+                14,
+                2,
+                66,
+                9,
+                19,
+                50,
+                4,
+                31,
+                7,
+                101_u8 as i8,
+            ];
+            assert_eq!(i8x32::from_array(arr).horizontal_max_unsigned(), 200_u8);
+        }
+    }
+
+    #[test]
+    fn i8x32_horizontal_min_unsigned() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let arr = [
+                12_u8 as i8,
+                5,
+                33,
+                7,
+                200_u8 as i8,
+                99,
+                1,
+                0,
+                55,
+                8,
+                22,
+                11,
+                1,
+                77,
+                3,
+                19,
+                44,
+                12,
+                6,
+                88,
+                33,
+                27,
+                14,
+                2,
+                66,
+                9,
+                19,
+                50,
+                4,
+                31,
+                7,
+                101_u8 as i8,
+            ];
+            assert_eq!(i8x32::from_array(arr).horizontal_min_unsigned(), 0_u8);
+        }
+    }
+
+    #[test]
+    fn i8x32_saturating_add() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i8x32::splat(100);
+            let b = i8x32::splat(50);
+            assert_eq!(a.saturating_add(b).to_array(), [127; 32]);
+            let a = i8x32::splat(-100);
+            let b = i8x32::splat(-50);
+            assert_eq!(a.saturating_add(b).to_array(), [-128; 32]);
+        }
+    }
+
+    #[test]
+    fn i8x32_saturating_add_unsigned() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i8x32::splat(200_u8 as i8);
+            let b = i8x32::splat(100_u8 as i8);
+            assert_eq!(a.saturating_add_unsigned(b).to_array(), [255_u8 as i8; 32]);
+        }
+    }
+
+    #[test]
+    fn i8x32_saturating_sub() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i8x32::splat(-100);
+            let b = i8x32::splat(50);
+            assert_eq!(a.saturating_sub(b).to_array(), [-128; 32]);
+            let a = i8x32::splat(100);
+            let b = i8x32::splat(-50);
+            assert_eq!(a.saturating_sub(b).to_array(), [127; 32]);
+        }
+    }
+
+    #[test]
+    fn i8x32_saturating_sub_unsigned() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i8x32::splat(50_u8 as i8);
+            let b = i8x32::splat(100_u8 as i8);
+            assert_eq!(a.saturating_sub_unsigned(b).to_array(), [0; 32]);
+        }
+    }
+
+    #[test]
+    fn i8x32_mul_by_sign_of() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i8x32::from_array([
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+            ]);
+            let b = i8x32::from_array([
+                1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1,
+            ]);
+            let result = a.mul_by_sign_of(b);
+            let expected = [
+                1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12, 13, -14, 15, -16, 17, -18, 19, -20, 21, -22, 23, -24, 25, -26, 27, -28, 29,
+                -30, 31, -32,
+            ];
+            assert_eq!(result.to_array(), expected);
+        }
+    }
+
+    #[test]
+    fn i16x16_unbounded_shli() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i16x16::from_array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, -32768]);
+            assert_eq!(
+                v.unbounded_shli::<1>().to_array(),
+                [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, -32768, 0]
+            );
+        }
+    }
+
+    #[test]
+    fn i16x16_unbounded_shri() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i16x16::from_array([1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, -32768]);
+            assert_eq!(
+                v.unbounded_shri::<1>().to_array(),
+                [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
+            );
+        }
+    }
+
+    #[test]
+    fn i32x8_from_i8x8_sext() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let value: i64 = 0x1234_5678_9abc_def0_u64 as i64;
+            let result = i32x8::from_i8x8_sext(value);
+            assert_eq!(
+                result.to_array(),
+                [
+                    0xf0_u8 as i8 as i32,
+                    0xde_u8 as i8 as i32,
+                    0xbc_u8 as i8 as i32,
+                    0x9a_u8 as i8 as i32,
+                    0x78_u8 as i8 as i32,
+                    0x56_u8 as i8 as i32,
+                    0x34_u8 as i8 as i32,
+                    0x12_u8 as i8 as i32
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn i32x8_clamp_to_u16_range_and_pack_i16x8x2() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i32x8::from_array([100, 100000, -100, -100000, 0, 65535, 0, 0]);
+            let b = i32x8::from_array([0, 65535, 0, 0, 100, 100000, -100, -100000]);
+            let packed = i32x8::clamp_to_u16_range_and_pack_i16x8x2(a, b);
+            assert_eq!(
+                packed.to_array(),
+                [
+                    100,
+                    65535_u16 as i16,
+                    0,
+                    0,
+                    0,
+                    65535_u16 as i16,
+                    0,
+                    0,
+                    0,
+                    65535_u16 as i16,
+                    0,
+                    0,
+                    100,
+                    65535_u16 as i16,
+                    0,
+                    0
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn i32x8_clamp_to_i8_range_and_pack() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v0 = i32x8::from_array([100, 200, -100, -200, 50, 300, -50, -300]);
+            let v1 = i32x8::from_array([0, 127, -128, 0, 1, 2, 3, 4]);
+            let v2 = i32x8::from_array([10, 20, 30, 40, 50, 60, 70, 80]);
+            let v3 = i32x8::from_array([-10, -20, -30, -40, -50, -60, -70, -80]);
+            let packed = i32x8::clamp_to_i8_range_and_pack(v0, v1, v2, v3);
+            assert_eq!(
+                packed.to_array(),
+                [
+                    100, 127, -100, -128, 50, 127, -50, -128, 0, 127, -128, 0, 1, 2, 3, 4, 10, 20, 30, 40, 50, 60, 70, 80, -10, -20, -30,
+                    -40, -50, -60, -70, -80
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn i32x8_unbounded_shlv() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i32x8::from_array([1, 2, 4, 8, 16, 32, 64, 128]);
+            assert_eq!(
+                v.unbounded_shlv(i32x8::from_array([1, 1, 1, 1, 1, 1, 1, 1])).to_array(),
+                [2, 4, 8, 16, 32, 64, 128, 256]
+            );
+        }
+    }
+
+    #[test]
+    fn i32x8_unbounded_shli() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i32x8::from_array([1, 2, 4, 8, 16, 32, 64, 128]);
+            assert_eq!(v.unbounded_shli::<2>().to_array(), [4, 8, 16, 32, 64, 128, 256, 512]);
+        }
+    }
+
+    #[test]
+    fn i64x4_unbounded_shrv() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i64x4::from_array([1, 2, 4, 8]);
+            assert_eq!(v.unbounded_shrv(i64x4::from_array([1, 1, 1, 1])).to_array(), [0, 1, 2, 4]);
+        }
+    }
+
+    #[test]
+    fn i64x4_unbounded_shlv() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i64x4::from_array([1, 2, 4, 8]);
+            assert_eq!(v.unbounded_shlv(i64x4::from_array([1, 1, 1, 1])).to_array(), [2, 4, 8, 16]);
+        }
+    }
+
+    #[test]
+    fn i64x4_unbounded_shri() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i64x4::from_array([1, 2, 4, 8]);
+            assert_eq!(v.unbounded_shri::<1>().to_array(), [0, 1, 2, 4]);
+        }
+    }
+
+    #[test]
+    fn i64x4_unbounded_shli() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = i64x4::from_array([1, 2, 4, 8]);
+            assert_eq!(v.unbounded_shli::<2>().to_array(), [4, 8, 16, 32]);
+        }
+    }
+
+    #[test]
+    fn i64x4_masked_store() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut dst = test_array_i64x4();
+            let value = i64x4::from_array(test_array_i64x4()).add(i64x4::splat(123));
+            value.masked_store(&mut dst, i64x4::zero());
+            assert_eq!(dst, test_array_i64x4());
+            value.masked_store(&mut dst, i64x4::splat(-1));
+            assert_eq!(dst, value.to_array());
+
+            dst = test_array_i64x4();
+            value.masked_store(&mut dst, i64x4::zero().set::<1>(-1));
+            assert_eq!(dst[0], test_array_i64x4()[0]);
+            assert_eq!(dst[1], value.get::<1>());
+            assert_eq!(dst[2], test_array_i64x4()[2]);
+            assert_eq!(dst[3], test_array_i64x4()[3]);
+        }
+    }
+
+    #[test]
+    fn i8x32_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i8x32::from_array([
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+            ]);
+            let b = i8x32::from_array([
+                2, 2, 2, 4, 4, 6, 6, 8, 8, 10, 10, 12, 12, 14, 14, 16, 16, 18, 18, 20, 20, 22, 22, 24, 24, 26, 26, 28, 28, 30, 30, 32,
+            ]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            let mut expected_gt = [false; 32];
+            let mut expected_lt = [false; 32];
+            expected_gt[2] = true;
+            expected_gt[4] = true;
+            expected_gt[6] = true;
+            expected_gt[8] = true;
+            expected_gt[10] = true;
+            expected_gt[12] = true;
+            expected_gt[14] = true;
+            expected_gt[16] = true;
+            expected_gt[18] = true;
+            expected_gt[20] = true;
+            expected_gt[22] = true;
+            expected_gt[24] = true;
+            expected_gt[26] = true;
+            expected_gt[28] = true;
+            expected_gt[30] = true;
+            expected_lt[0] = true;
+            assert_eq!(gt.to_array().map(|x| x != 0), expected_gt);
+            assert_eq!(lt.to_array().map(|x| x != 0), expected_lt);
+        }
+    }
+
+    #[test]
+    fn i16x16_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i16x16::from_array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let b = i16x16::from_array([2, 2, 2, 4, 4, 6, 6, 8, 8, 10, 10, 12, 12, 14, 14, 16]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            let mut expected_gt = [false; 16];
+            let mut expected_lt = [false; 16];
+            expected_gt[2] = true;
+            expected_gt[4] = true;
+            expected_gt[6] = true;
+            expected_gt[8] = true;
+            expected_gt[10] = true;
+            expected_gt[12] = true;
+            expected_gt[14] = true;
+            expected_lt[0] = true;
+            assert_eq!(gt.to_array().map(|x| x != 0), expected_gt);
+            assert_eq!(lt.to_array().map(|x| x != 0), expected_lt);
+        }
+    }
+
+    #[test]
+    fn i32x8_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i32x8::from_array([1, 2, 3, 4, 5, 6, 7, 8]);
+            let b = i32x8::from_array([2, 2, 2, 4, 4, 6, 6, 8]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            let mut expected_gt = [false; 8];
+            let mut expected_lt = [false; 8];
+            expected_gt[2] = true;
+            expected_gt[4] = true;
+            expected_gt[6] = true;
+            expected_lt[0] = true;
+            assert_eq!(gt.to_array().map(|x| x != 0), expected_gt);
+            assert_eq!(lt.to_array().map(|x| x != 0), expected_lt);
+        }
+    }
+
+    #[test]
+    fn i64x4_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let a = i64x4::from_array([1, 2, 3, 4]);
+            let b = i64x4::from_array([2, 2, 2, 4]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            let mut expected_gt = [false; 4];
+            let mut expected_lt = [false; 4];
+            expected_gt[2] = true;
+            expected_lt[0] = true;
+            assert_eq!(gt.to_array().map(|x| x != 0), expected_gt);
+            assert_eq!(lt.to_array().map(|x| x != 0), expected_lt);
+        }
+    }
+
+    #[test]
+    fn to_si256_zext() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let v = si128::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let zext = v.to_si256_zext();
+            assert_eq!(
+                zext.lo().as_i8x16().to_array(),
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+            );
+            assert!(zext.hi().as_i8x16().to_array().iter().all(|&b| b == 0));
+        }
+    }
+
+    #[test]
+    fn i32x4_masked_store() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut dst = test_array_i32x4();
+            let value = i32x4::from_array(test_array_i32x4()).add(i32x4::splat(123));
+            value.masked_store(&mut dst, i32x4::zero());
+            assert_eq!(dst, test_array_i32x4());
+            value.masked_store(&mut dst, i32x4::splat(-1));
+            assert_eq!(dst, value.to_array());
+
+            dst = test_array_i32x4();
+            value.masked_store(&mut dst, i32x4::zero().set::<0>(-1));
+            assert_eq!(dst[0], value.get::<0>());
+            assert_eq!(dst[1..], test_array_i32x4()[1..]);
+        }
+    }
+
+    #[test]
+    fn i64x2_masked_store() {
+        if !std::arch::is_x86_feature_detected!("avx2") {
+            return;
+        }
+        unsafe {
+            let mut dst = test_array_i64x2();
+            let value = i64x2::from_array(test_array_i64x2()).add(i64x2::splat(123));
+            value.masked_store(&mut dst, i64x2::zero());
+            assert_eq!(dst, test_array_i64x2());
+            value.masked_store(&mut dst, i64x2::splat(-1));
+            assert_eq!(dst, value.to_array());
+
+            dst = test_array_i64x2();
+            value.masked_store(&mut dst, i64x2::zero().set::<1>(-1));
+            assert_eq!(dst[0], test_array_i64x2()[0]);
+            assert_eq!(dst[1], value.get::<1>());
         }
     }
 }
