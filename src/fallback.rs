@@ -216,6 +216,11 @@ macro_rules! impl_fallback {
             pub fn max_signed(self, rhs: Self) -> Self {
                 Self(zip_map(self.0, rhs.0, |lhs, rhs| lhs.max(rhs)))
             }
+
+            #[inline]
+            pub unsafe fn load_unaligned(address: *const u8) -> Self {
+                unsafe { core::ptr::read_unaligned(address.cast()) }
+            }
         }
 
         #[cfg(feature = "ops")]
