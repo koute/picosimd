@@ -639,4 +639,392 @@ mod tests {
             assert_eq!(i32x4_pick!(ys[3, 0, 3, 0]).to_array(), [xs[3], xs[0], xs[3], xs[0]]);
         }
     }
+
+    #[test]
+    fn si128_from_i64_zext() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let v = si128::from_i64_zext(0x1234567890abcdef);
+            assert_eq!(v.lo(), 0x1234567890abcdef_i64);
+            let cleared = v.with_upper_i64_clear();
+            assert_eq!(cleared.lo(), 0x1234567890abcdef_i64);
+            assert!(cleared.as_i64x2().get::<1>() == 0);
+        }
+    }
+
+    #[test]
+    fn si128_store_aligned_and_load_aligned() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            #[repr(align(16))]
+            struct Aligned16([u8; 16]);
+            let mut aligned = Aligned16([0; 16]);
+            let ptr = aligned.0.as_mut_ptr();
+            let original = si128::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            original.store_aligned(ptr);
+            let loaded = si128::load_aligned(ptr);
+            assert_eq!(
+                loaded.as_i8x16().to_array(),
+                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+            );
+        }
+    }
+
+    #[test]
+    fn si128_unbounded_shl_by_bytes() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let bytes = si128::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let shifted = bytes.unbounded_shl_by_bytes::<4>();
+            assert_eq!(shifted.as_i8x16().to_array(), [0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        }
+    }
+
+    #[test]
+    fn si128_unbounded_shr_by_bytes() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let bytes = si128::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let shifted = bytes.unbounded_shr_by_bytes::<4>();
+            assert_eq!(
+                shifted.as_i8x16().to_array(),
+                [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0, 0, 0, 0]
+            );
+        }
+    }
+
+    #[test]
+    fn si128_swap_halves() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let bytes = si128::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let swapped = bytes.swap_halves();
+            assert_eq!(
+                swapped.as_i8x16().to_array(),
+                [9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8]
+            );
+        }
+    }
+
+    #[test]
+    fn si128_copy_hi_to_lo() {
+        if !std::arch::is_x86_feature_detected!("sse") {
+            return;
+        }
+        unsafe {
+            let a = si128::from_bytes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let b = si128::from_bytes([17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]);
+            let copied = a.copy_hi_to_lo(b);
+            assert_eq!(
+                copied.as_i8x16().to_array(),
+                [25, 26, 27, 28, 29, 30, 31, 32, 9, 10, 11, 12, 13, 14, 15, 16]
+            );
+        }
+    }
+
+    #[test]
+    fn i8x16_most_significant_bits() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let v = i8x16::from_array([0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1]);
+            assert_eq!(v.most_significant_bits(), 0b1010101010101010_u16 as i16);
+        }
+    }
+
+    #[test]
+    fn i8x16_shuffle() {
+        if !std::arch::is_x86_feature_detected!("ssse3") {
+            return;
+        }
+        unsafe {
+            let v = i8x16::from_array([
+                10,
+                20,
+                30,
+                40,
+                50,
+                60,
+                70,
+                80,
+                90,
+                100,
+                110,
+                120,
+                130_u8 as i8,
+                140_u8 as i8,
+                150_u8 as i8,
+                160_u8 as i8,
+            ]);
+
+            let mask = i8x16::from_array([15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]);
+            let shuffled = v.shuffle(mask);
+            assert_eq!(
+                shuffled.to_array(),
+                [
+                    160_u8 as i8,
+                    150_u8 as i8,
+                    140_u8 as i8,
+                    130_u8 as i8,
+                    120,
+                    110,
+                    100,
+                    90,
+                    80,
+                    70,
+                    60,
+                    50,
+                    40,
+                    30,
+                    20,
+                    10
+                ]
+            );
+
+            let mask = i8x16::from_array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            let shuffled = v.shuffle(mask);
+            assert_eq!(shuffled.to_array(), [10; 16]);
+        }
+    }
+
+    #[test]
+    fn i16x8_get() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let v = i16x8::from_array([10, 20, 30, 40, 50, 60, 70, 80]);
+            assert_eq!(v.get::<0>(), 10);
+            assert_eq!(v.get::<7>(), 80);
+        }
+    }
+
+    #[test]
+    fn i16x8_set() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let v = i16x8::from_array([10, 20, 30, 40, 50, 60, 70, 80]);
+            let v = v.set::<3>(99);
+            assert_eq!(v.to_array(), [10, 20, 30, 99, 50, 60, 70, 80]);
+        }
+    }
+
+    #[test]
+    fn i16x8_clamp_to_i8_range_and_pack() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let a = i16x8::from_array([100, 200, -100, -200, 50, 300, -50, -300]);
+            let b = i16x8::from_array([0, 127, -128, 0, 1, 2, 3, 4]);
+            let packed = a.clamp_to_i8_range_and_pack(b);
+            assert_eq!(
+                packed.to_array(),
+                [100, 127, -100, -128, 50, 127, -50, -128, 0, 127, -128, 0, 1, 2, 3, 4]
+            );
+        }
+    }
+
+    #[test]
+    fn i16x8_clamp_to_u8_range_and_pack() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let a = i16x8::from_array([100, 200, -100, -200, 50, 300, -50, -300]);
+            let b = i16x8::from_array([0, 127, -128, 0, 1, 2, 3, 4]);
+            let packed = a.clamp_to_u8_range_and_pack(b);
+            assert_eq!(
+                packed.to_array(),
+                [100, 200_u8 as i8, 0, 0, 50, 255_u8 as i8, 0, 0, 0, 127, 0, 0, 1, 2, 3, 4]
+            );
+        }
+    }
+
+    #[test]
+    fn i32x4_clamp_to_i16_range_and_pack() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let a = i32x4::from_array([100, 100000, -100, -100000]);
+            let b = i32x4::from_array([0, 32767, -32768, 0]);
+            let packed = a.clamp_to_i16_range_and_pack(b);
+            assert_eq!(packed.to_array(), [100, 32767, -100, -32768, 0, 32767, -32768, 0]);
+        }
+    }
+
+    #[test]
+    fn i32x4_clamp_to_u16_range_and_pack() {
+        if !std::arch::is_x86_feature_detected!("sse4.1") {
+            return;
+        }
+        unsafe {
+            let a = i32x4::from_array([100, 100000, -100, -100000]);
+            let b = i32x4::from_array([0, 32767, -32768, 0]);
+            let packed = a.clamp_to_u16_range_and_pack(b);
+            assert_eq!(packed.to_array(), [100, 65535_u16 as i16, 0, 0, 0, 32767, 0, 0]);
+        }
+    }
+
+    #[test]
+    fn i8x16_min_max() {
+        if !std::arch::is_x86_feature_detected!("sse4.1") {
+            return;
+        }
+        unsafe {
+            let a = i8x16::from_array([1, -1, 100, -100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            let b = i8x16::from_array([2, -2, 50, -50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            assert_eq!(a.min_signed(b).to_array(), [1, -2, 50, -100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            assert_eq!(a.max_signed(b).to_array(), [2, -1, 100, -50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            assert_eq!(a.min_unsigned(b).to_array(), [1, -2, 50, -100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+            assert_eq!(a.max_unsigned(b).to_array(), [2, -1, 100, -50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        }
+    }
+
+    #[test]
+    fn i16x8_min_max() {
+        if !std::arch::is_x86_feature_detected!("sse4.1") {
+            return;
+        }
+        unsafe {
+            let a = i16x8::from_array([1, -1, 1000, -1000, 0, 0, 0, 0]);
+            let b = i16x8::from_array([2, -2, 500, -500, 0, 0, 0, 0]);
+            assert_eq!(a.min_signed(b).to_array(), [1, -2, 500, -1000, 0, 0, 0, 0]);
+            assert_eq!(a.max_signed(b).to_array(), [2, -1, 1000, -500, 0, 0, 0, 0]);
+            assert_eq!(a.min_unsigned(b).to_array(), [1, -2, 500, -1000, 0, 0, 0, 0]);
+            assert_eq!(a.max_unsigned(b).to_array(), [2, -1, 1000, -500, 0, 0, 0, 0]);
+        }
+    }
+
+    #[test]
+    fn i32x4_min_max() {
+        if !std::arch::is_x86_feature_detected!("sse4.1") {
+            return;
+        }
+        unsafe {
+            let a = i32x4::from_array([1, -1, 100000, -100000]);
+            let b = i32x4::from_array([2, -2, 50000, -50000]);
+            assert_eq!(a.min_signed(b).to_array(), [1, -2, 50000, -100000]);
+            assert_eq!(a.max_signed(b).to_array(), [2, -1, 100000, -50000]);
+            assert_eq!(a.min_unsigned(b).to_array(), [1, -2, 50000, -100000]);
+            assert_eq!(a.max_unsigned(b).to_array(), [2, -1, 100000, -50000]);
+        }
+    }
+
+    #[test]
+    fn i32x4_as_slice() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let mut a = test_array_i32x4();
+            let mut b = i32x4::from_array(a);
+            assert_eq!(*b.as_slice(), a);
+            a[2] = 99;
+            b.as_slice_mut()[2] = 99;
+            assert_eq!(*b.as_slice(), a);
+        }
+    }
+
+    #[test]
+    fn i64x2_as_slice() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let mut a = test_array_i64x2();
+            let mut b = i64x2::from_array(a);
+            assert_eq!(*b.as_slice(), a);
+            a[1] = 99;
+            b.as_slice_mut()[1] = 99;
+            assert_eq!(*b.as_slice(), a);
+        }
+    }
+
+    #[test]
+    fn i8x16_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let a = i8x16::from_array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+            let b = i8x16::from_array([2, 2, 2, 4, 4, 6, 6, 8, 8, 10, 10, 12, 12, 14, 14, 16]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            assert_eq!(
+                gt.to_array().map(|x| x != 0),
+                [
+                    false, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false
+                ]
+            );
+            assert_eq!(
+                lt.to_array().map(|x| x != 0),
+                [
+                    true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn i16x8_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let a = i16x8::from_array([1, 2, 3, 4, 5, 6, 7, 8]);
+            let b = i16x8::from_array([2, 2, 2, 4, 4, 6, 6, 8]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            assert_eq!(gt.to_array().map(|x| x != 0), [false, false, true, false, true, false, true, false]);
+            assert_eq!(
+                lt.to_array().map(|x| x != 0),
+                [true, false, false, false, false, false, false, false]
+            );
+        }
+    }
+
+    #[test]
+    fn i32x4_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("sse2") {
+            return;
+        }
+        unsafe {
+            let a = i32x4::from_array([1, 2, 3, 4]);
+            let b = i32x4::from_array([2, 2, 2, 4]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            assert_eq!(gt.to_array().map(|x| x != 0), [false, false, true, false]);
+            assert_eq!(lt.to_array().map(|x| x != 0), [true, false, false, false]);
+        }
+    }
+
+    #[test]
+    fn i64x2_simd_gt_lt() {
+        if !std::arch::is_x86_feature_detected!("sse4.2") {
+            return;
+        }
+        unsafe {
+            let a = i64x2::from_array([1, 2]);
+            let b = i64x2::from_array([2, 2]);
+            let gt = a.simd_gt(b);
+            let lt = a.simd_lt(b);
+            assert_eq!(gt.to_array().map(|x| x != 0), [false, false]);
+            assert_eq!(lt.to_array().map(|x| x != 0), [true, false]);
+        }
+    }
 }
